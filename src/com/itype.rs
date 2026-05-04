@@ -307,6 +307,26 @@ impl _Type {
             }
         }
     }
+
+    #[inline]
+    pub fn GetField(&self, name: &str, bindingAttr: BindingFlags) -> Result<*mut c_void> {
+        unsafe {
+            let field_name = name.to_bstr();
+            let mut result = null_mut();
+            let hr = (Interface::vtable(self).GetField)(
+                Interface::as_raw(self),
+                field_name,
+                bindingAttr,
+                &mut result,
+            );
+
+            if hr == 0 && !result.is_null() {
+                Ok(result)
+            } else {
+                Err(ClrError::ApiError("GetField", hr))
+            }
+        }
+    }
 }
 
 unsafe impl Interface for _Type {
@@ -438,7 +458,12 @@ pub struct _Type_Vtbl {
         bindingAttr: BindingFlags,
         pRetVal: *mut *mut SAFEARRAY,
     ) -> HRESULT,
-    GetField: *const c_void,
+    pub GetField: unsafe extern "system" fn(
+        this: *mut c_void,
+        name: BSTR,
+        bindingAttr: BindingFlags,
+        pRetVal: *mut *mut c_void,
+    ) -> HRESULT,
     GetFields: *const c_void,
     pub GetProperty: unsafe extern "system" fn(
         this: *mut c_void,
